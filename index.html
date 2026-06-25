@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SheetJS -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <!-- SortableJS pour le Drag & Drop du Kanban -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -208,20 +210,20 @@
                     <div class="flex flex-col bg-gray-800/50 rounded-xl border border-gray-700/50">
                         <div class="p-3 border-b border-gray-700/50 font-bold text-orange-400 flex justify-between items-center bg-gray-800/80 rounded-t-xl">
                             <span>🟠 En cours (Appel programmé)</span>
-                            <span class="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">0</span>
+                            <span id="kb-count-inprogress" class="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">0</span>
                         </div>
-                        <div id="kb-col-inprogress" class="p-3 flex flex-col gap-3 min-h-[300px] text-center justify-center text-gray-500 text-sm">
-                            <p>Déplacez les cartes ici</p>
+                        <div id="kb-col-inprogress" class="p-3 flex flex-col gap-3 min-h-[300px] text-center text-gray-500 text-sm empty:justify-center">
+                            <!-- Drag destination -->
                         </div>
                     </div>
                     <!-- Colonne 3 -->
                     <div class="flex flex-col bg-gray-800/50 rounded-xl border border-gray-700/50">
                         <div class="p-3 border-b border-gray-700/50 font-bold text-green-400 flex justify-between items-center bg-gray-800/80 rounded-t-xl">
                             <span>🟢 Sécurisé (Sauvé)</span>
-                            <span class="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">0</span>
+                            <span id="kb-count-done" class="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">0</span>
                         </div>
-                        <div id="kb-col-done" class="p-3 flex flex-col gap-3 min-h-[300px] text-center justify-center text-gray-500 text-sm">
-                            <p>Contrats renouvelés</p>
+                        <div id="kb-col-done" class="p-3 flex flex-col gap-3 min-h-[300px] text-center text-gray-500 text-sm empty:justify-center">
+                            <!-- Drag destination -->
                         </div>
                     </div>
                 </div>
@@ -516,6 +518,41 @@
                     <button class="w-full mt-2 bg-blue-600/80 hover:bg-blue-500 text-white text-[11px] py-1.5 font-semibold rounded transition" onclick="alert('Relance planifiée pour le contrat ${item.id}')">Appeler J-30</button>
                 </div>
             `}).join('');
+
+            // Vider les autres colonnes et reset les compteurs au rendu initial
+            document.getElementById('kb-col-inprogress').innerHTML = '';
+            document.getElementById('kb-col-done').innerHTML = '';
+            updateKanbanCounts();
+
+            // Initialiser SortableJS sur les 3 colonnes
+            initSortable();
+        }
+
+        let sortableInstances = [];
+        
+        function initSortable() {
+            // Détruire les anciennes instances si elles existent pour éviter les doublons lors des filtres
+            sortableInstances.forEach(inst => inst.destroy());
+            sortableInstances = [];
+
+            const cols = ['kb-col-todo', 'kb-col-inprogress', 'kb-col-done'];
+            cols.forEach(colId => {
+                const el = document.getElementById(colId);
+                if (el) {
+                    sortableInstances.push(new Sortable(el, {
+                        group: 'kanban',
+                        animation: 150,
+                        ghostClass: 'opacity-50',
+                        onEnd: updateKanbanCounts
+                    }));
+                }
+            });
+        }
+
+        function updateKanbanCounts() {
+            document.getElementById('kb-count-todo').innerText = document.getElementById('kb-col-todo').children.length;
+            document.getElementById('kb-count-inprogress').innerText = document.getElementById('kb-col-inprogress').children.length;
+            document.getElementById('kb-count-done').innerText = document.getElementById('kb-col-done').children.length;
         }
 
     </script>
