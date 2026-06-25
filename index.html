@@ -3,23 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Optivie — Portefeuille & Rétention</title>
+    <title>Optivie — Portefeuille & Rétention (Dynamique)</title>
     <!-- Tailwind CSS (via CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js (via CDN) -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Tailwind Config for Custom Colors -->
+    <!-- SheetJS pour le parsing Excel côté client -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        gray: {
-                            900: '#0f172a',
-                            800: '#1e293b',
-                            700: '#334155',
-                        },
+                        gray: { 900: '#0f172a', 800: '#1e293b', 700: '#334155' }
                     }
                 }
             }
@@ -31,32 +27,37 @@
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .pulse-border {
-            animation: pulse-border 2s infinite;
-        }
-        @keyframes pulse-border {
-            0% { border-color: rgba(239, 68, 68, 0.2); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-            70% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-            100% { border-color: rgba(239, 68, 68, 0.2); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-        .slide-in {
-            animation: slideIn 0.5s ease-out forwards;
-        }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
         
-        /* Custom scrollbar for table */
+        .upload-zone {
+            border: 2px dashed #3b82f6;
+            transition: all 0.3s ease;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            background: rgba(59, 130, 246, 0.1);
+            transform: scale(1.02);
+        }
+
+        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .spinner {
+            display: none;
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 font-sans min-h-screen p-4 md:p-8">
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen p-4 md:p-8 flex flex-col">
 
-    <!-- 1. HEADER & KPI CLÉS -->
+    <!-- HEADER (Toujours visible) -->
     <header class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 glass-panel rounded-2xl p-6 shadow-xl">
         <div>
             <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Optivie</h1>
@@ -64,311 +65,338 @@
         </div>
         <div class="flex items-center space-x-3 mt-4 md:mt-0">
             <span class="relative flex h-3 w-3">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
             </span>
-            <span class="text-sm font-semibold text-gray-300">Prototype SalesOps - Mode Live</span>
+            <span class="text-sm font-semibold text-gray-300">Architecture DevSecOps (100% Client-Side)</span>
         </div>
     </header>
 
-    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <div class="glass-panel rounded-xl p-6 transform transition hover:-translate-y-1 hover:shadow-lg">
-            <h3 class="text-gray-400 text-sm font-semibold uppercase mb-2">Contrats Actifs</h3>
-            <p class="text-4xl font-bold text-white">1 200</p>
-            <p class="text-xs text-green-400 mt-2 font-semibold">Taux de renouvellement : 82%</p>
+    <!-- ZONE D'UPLOAD INITIALE -->
+    <div id="uploadSection" class="flex-1 flex flex-col items-center justify-center">
+        <div id="dropZone" class="upload-zone w-full max-w-2xl rounded-2xl p-12 text-center cursor-pointer shadow-2xl glass-panel">
+            <div class="text-6xl mb-4 text-blue-500">📥</div>
+            <h2 class="text-2xl font-bold text-white mb-2">Importez Optivie_Dataset.xlsx</h2>
+            <p class="text-gray-400 mb-6">Glissez-déposez le fichier réel ici. Aucune donnée n'est envoyée sur un serveur.</p>
+            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="hidden">
+            <button class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 px-6 rounded-lg transition shadow-lg" onclick="document.getElementById('fileInput').click()">
+                Parcourir les fichiers
+            </button>
         </div>
-        <div class="glass-panel rounded-xl p-6 transform transition hover:-translate-y-1 hover:shadow-lg border-b-4 border-b-blue-500">
-            <h3 class="text-gray-400 text-sm font-semibold uppercase mb-2">CA Commissions Récurrentes</h3>
-            <p class="text-4xl font-bold text-white">182 162 €</p>
-            <p class="text-xs text-blue-400 mt-2 font-semibold">Somme globale du récurrent</p>
-        </div>
-        <div class="glass-panel pulse-border rounded-xl p-6 transform transition hover:-translate-y-1 bg-red-900/10">
-            <h3 class="text-red-400 text-sm font-semibold uppercase mb-2">Alerte d'Opacité</h3>
-            <p class="text-4xl font-bold text-red-500">42%</p>
-            <p class="text-xs text-red-300 mt-2 font-semibold">Du portefeuille hors CRM (Portefeuille Mehdi)</p>
-        </div>
-        <div class="glass-panel rounded-xl p-6 transform transition hover:-translate-y-1 hover:shadow-lg border-b-4 border-b-orange-500">
-            <h3 class="text-gray-400 text-sm font-semibold uppercase mb-2">Volume de Churn Annuel</h3>
-            <p class="text-4xl font-bold text-orange-400">18%</p>
-            <p class="text-xs text-gray-300 mt-2">~216 résiliés/an dont <span class="font-bold text-white">81 évitables</span></p>
-        </div>
-    </section>
+        <div id="spinner" class="spinner mt-8"></div>
+    </div>
 
-    <!-- 2. PIPELINE DE RÈGLE D'ATTRIBUTION ET SLA -->
-    <section class="mb-10 glass-panel rounded-2xl p-6 shadow-xl">
-        <h2 class="text-xl font-bold mb-6 flex items-center text-white">
-            <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            Nouveau Pipeline d'Attribution & SLA (Process Cible)
-        </h2>
+    <!-- DASHBOARD PRINCIPAL (Masqué au démarrage) -->
+    <div id="dashboardSection" class="hidden flex-col gap-8 w-full max-w-7xl mx-auto">
         
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 text-sm relative mt-8">
-            <!-- Connecting line (hidden on mobile) -->
-            <div class="hidden lg:block absolute top-1/2 left-0 w-full h-0.5 bg-gray-700 -z-10 -translate-y-1/2"></div>
-            
-            <div class="bg-gray-800 border border-gray-700 p-4 rounded-lg z-10 shadow-md w-full lg:w-40 text-center relative">
-                <div class="font-semibold text-white">Tri automatique</div>
-                <div class="text-[10px] text-gray-400 mt-1 uppercase">Moteur de règles</div>
+        <!-- 2. KPI CLÉS -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="glass-panel rounded-xl p-6 border-l-4 border-blue-500">
+                <h3 class="text-gray-400 text-sm font-semibold uppercase mb-2">Contrats Actifs</h3>
+                <p id="kpi-actifs" class="text-4xl font-bold text-white">0</p>
             </div>
-            
-            <div class="bg-gray-800 border border-gray-700 p-4 rounded-lg z-10 shadow-md w-full lg:w-40 text-center relative">
-                <div class="font-semibold text-white">Attribution écrite</div>
-                <div class="text-[10px] text-gray-400 mt-1 uppercase">Affectation CRM</div>
+            <div class="glass-panel rounded-xl p-6 border-l-4 border-green-500">
+                <h3 class="text-gray-400 text-sm font-semibold uppercase mb-2">CA Récurrent (€)</h3>
+                <p id="kpi-ca" class="text-4xl font-bold text-white">0 €</p>
             </div>
-
-            <div class="bg-gray-800 border-2 border-red-500 p-4 rounded-lg z-10 shadow-[0_0_15px_rgba(239,68,68,0.2)] w-full lg:w-48 text-center relative mt-4 lg:mt-0">
-                <div class="font-semibold text-white">Contact Qualif</div>
-                <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap shadow-lg">
-                    SLA 4h (Leads Chauds)
-                </div>
+            <div class="glass-panel rounded-xl p-6 border-l-4 border-red-500 bg-red-900/10">
+                <h3 class="text-red-400 text-sm font-semibold uppercase mb-2">Opacité (Hors CRM)</h3>
+                <p id="kpi-opacite" class="text-4xl font-bold text-red-500">0%</p>
+                <p class="text-xs text-red-300 mt-1">Portefeuille Mehdi</p>
             </div>
-
-            <div class="bg-gray-800 border-2 border-orange-500 p-4 rounded-lg z-10 shadow-[0_0_15px_rgba(249,115,22,0.2)] w-full lg:w-48 text-center relative mt-4 lg:mt-0">
-                <div class="font-semibold text-white">Devis J+3</div>
-                <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap shadow-lg">
-                    SLA 24h (Comparateurs)
-                </div>
-            </div>
-
-            <div class="bg-gray-800 border border-gray-700 p-4 rounded-lg z-10 shadow-md w-full lg:w-44 text-center">
-                <div class="font-semibold text-white">Relance Cadencée</div>
-                <div class="text-[10px] text-gray-400 mt-1 font-mono">J+1 / J+3 / J+7</div>
-            </div>
-
-            <div class="bg-gray-800 border border-gray-700 p-4 rounded-lg z-10 shadow-md w-full lg:w-40 text-center">
-                <div class="font-semibold text-white">Signature Saisie</div>
-                <div class="text-[10px] text-gray-400 mt-1 uppercase">Clôture CRM</div>
-            </div>
-
-            <div class="bg-gray-800 border-2 border-green-500 p-4 rounded-lg z-10 shadow-[0_0_15px_rgba(34,197,94,0.2)] w-full lg:w-40 text-center">
-                <div class="font-semibold text-white">Rétention</div>
-                <div class="text-[10px] text-green-400 font-bold mt-1 uppercase">Alerte J-30</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 3 & 4. LAYOUT 2 COLONNES -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-        
-        <!-- 3. TABLEAU D'ALERTES -->
-        <section class="lg:col-span-2 glass-panel rounded-2xl p-6 flex flex-col shadow-xl">
-            <h2 class="text-xl font-bold mb-4 flex items-center text-white">
-                <svg class="w-6 h-6 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                Cadence de Rétention & Scoring de Risque
-            </h2>
-            <div class="overflow-x-auto flex-1">
-                <table class="w-full text-left border-collapse min-w-[700px]">
-                    <thead>
-                        <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wider bg-gray-800/50">
-                            <th class="p-3 font-semibold rounded-tl-lg">ID Contrat</th>
-                            <th class="p-3 font-semibold">Courtier / Produit</th>
-                            <th class="p-3 font-semibold">Ancienneté & CA</th>
-                            <th class="p-3 font-semibold">Alertes Déclenchées & Score</th>
-                            <th class="p-3 font-semibold text-right rounded-tr-lg">Action Automatique</th>
-                        </tr>
-                    </thead>
-                    <tbody id="retentionTableBody" class="text-sm">
-                        <!-- Rempli par JavaScript -->
-                    </tbody>
-                </table>
+            <div class="glass-panel rounded-xl p-6 border-l-4 border-orange-500">
+                <h3 class="text-gray-400 text-sm font-semibold uppercase mb-2">Volume Résiliations</h3>
+                <p id="kpi-churn" class="text-4xl font-bold text-orange-400">0</p>
+                <p class="text-xs text-gray-400 mt-1">Historique identifié</p>
             </div>
         </section>
 
-        <!-- 4. ESPACE MANAGER (RÉSISTANCE) -->
-        <section class="glass-panel rounded-2xl p-6 border-t-4 lg:border-t-0 lg:border-l-4 border-purple-500 flex flex-col shadow-xl bg-gradient-to-b from-gray-800/80 to-gray-900/80">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-bold text-white flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    Espace Manager Sébastien
+        <!-- 4. INTERFACE FUNNEL & CHANGEMENT -->
+        <section class="glass-panel rounded-2xl p-6 shadow-xl">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Nouveau Funnel de Rétention
+                </h2>
+                
+                <!-- Filtre interactif -->
+                <div class="bg-gray-800 p-1 rounded-lg inline-flex shadow-inner">
+                    <button id="filterAllBtn" onclick="setFilter('all')" class="px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 text-white shadow transition">Tout le portefeuille</button>
+                    <button id="filterRiskBtn" onclick="setFilter('risk')" class="px-4 py-2 text-sm font-semibold rounded-md text-gray-400 hover:text-white transition">Périmètre à risques (Mehdi + Échéances)</button>
+                </div>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row justify-between items-stretch gap-2 text-sm relative mt-4">
+                <div class="bg-gray-800 border border-gray-700 p-4 rounded-lg flex-1 text-center shadow-md">
+                    <div class="font-bold text-white mb-1">Routage Auto</div>
+                    <div class="text-[10px] text-gray-400">Règles métiers</div>
+                </div>
+                <div class="hidden lg:flex items-center text-gray-600">▶</div>
+                <div class="bg-gray-800 border-2 border-red-500/50 p-4 rounded-lg flex-1 text-center shadow-md">
+                    <div class="font-bold text-white mb-1">Contact</div>
+                    <div class="text-[10px] text-red-400 font-bold">SLA Strict 4h/24h</div>
+                </div>
+                <div class="hidden lg:flex items-center text-gray-600">▶</div>
+                <div class="bg-gray-800 border border-gray-700 p-4 rounded-lg flex-1 text-center shadow-md">
+                    <div class="font-bold text-white mb-1">Relance Cadencée</div>
+                    <div class="text-[10px] text-gray-400">J+1 / J+3 / J+7</div>
+                </div>
+                <div class="hidden lg:flex items-center text-gray-600">▶</div>
+                <div class="bg-gray-800 border-2 border-green-500/50 p-4 rounded-lg flex-1 text-center shadow-md">
+                    <div class="font-bold text-white mb-1">Rétention</div>
+                    <div class="text-[10px] text-green-400 font-bold">Alerte J-30</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. TABLEAU DE SCORING DU RISQUE -->
+        <section class="glass-panel rounded-2xl flex flex-col shadow-xl overflow-hidden mb-10">
+            <div class="p-6 border-b border-gray-700">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Contrats Actifs & Scoring de Risque
                 </h2>
             </div>
             
-            <p class="text-xs text-gray-400 mb-6">Gestion de la résistance Courtier (Transparence et confiance). Observez la progression de la reprise CRM.</p>
-
-            <div class="bg-gray-800/80 p-4 rounded-xl border border-gray-700 mb-6 shadow-inner">
-                <label class="flex items-center cursor-pointer justify-between">
-                    <div class="font-medium text-sm text-gray-300">Mode Pilotage Standard</div>
-                    <div class="relative">
-                        <input type="checkbox" id="managerSwitch" class="sr-only" onchange="toggleManagerMode()">
-                        <div class="block bg-gray-600 w-12 h-6 rounded-full transition-colors duration-300 shadow-inner" id="switchBg"></div>
-                        <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow" id="switchDot"></div>
-                    </div>
-                </label>
-                <div class="text-xs text-purple-400 font-semibold mt-3 text-right hidden slide-in bg-purple-900/20 py-2 px-3 rounded border border-purple-500/30" id="translucentLabel">
-                    <span class="animate-pulse inline-block mr-1">👁️</span> Mode Portefeuille Mehdi Translucide activé<br>
-                    <span class="text-gray-400 font-normal text-[10px]">Sophie et Romain ressaisissent les données.</span>
-                </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-800/80">
+                        <tr class="text-gray-400 text-xs uppercase tracking-wider">
+                            <th class="p-4 font-semibold">ID Contrat</th>
+                            <th class="p-4 font-semibold">Courtier</th>
+                            <th class="p-4 font-semibold text-right">Prime Ann.</th>
+                            <th class="p-4 font-semibold text-right">Com. Réc.</th>
+                            <th class="p-4 font-semibold text-center">Durée (Mois)</th>
+                            <th class="p-4 font-semibold text-center">Risk Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody" class="text-sm divide-y divide-gray-700/50">
+                        <!-- Rempli dynamiquement -->
+                    </tbody>
+                </table>
             </div>
-
-            <div class="flex-1 relative min-h-[250px] bg-gray-900/50 rounded-lg p-2 border border-gray-700/50">
-                <canvas id="recoveryChart"></canvas>
+            
+            <div id="noDataMsg" class="hidden p-8 text-center text-gray-500">
+                Aucun contrat ne correspond au filtre actuel.
             </div>
         </section>
 
     </div>
 
-    <!-- LOGIQUE JAVASCRIPT HARDCODÉE (PROTOTYPE SPA) -->
+    <!-- LOGIQUE JAVASCRIPT (Parsing & UI) -->
     <script>
-        // --- DONNÉES HARDCODÉES DU DATASET ---
-        const dataset = [
-            { id: "CTR-9014", courtier: "Mehdi", produit: "Complémentaire Santé", prime: 450, mois: 66, commission: "120 €" },
-            { id: "CTR-8822", courtier: "Sophie", produit: "Prévoyance Pro", prime: 250, mois: 24, commission: "85 €" },
-            { id: "CTR-9055", courtier: "Mehdi", produit: "Mutuelle Familiale", prime: 520, mois: 68, commission: "150 €" },
-            { id: "CTR-7123", courtier: "Romain", produit: "Assurance Emprunteur", prime: 150, mois: 12, commission: "40 €" },
-            { id: "CTR-9110", courtier: "Mehdi", produit: "Complémentaire Santé", prime: 380, mois: 40, commission: "100 €" },
-            { id: "CTR-8450", courtier: "Sophie", produit: "Santé Senior", prime: 600, mois: 65, commission: "180 €" }
-        ];
+        // Variables globales
+        let allContracts = [];
+        let currentFilter = 'all'; // 'all' or 'risk'
 
-        // --- MOTEUR DE SCORING ---
-        function enrichData(data) {
-            return data.map(item => {
-                let score = 10; // Score de base par défaut
-                let badges = [];
+        // --- GESTION DU DRAG & DROP ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const dashboardSection = document.getElementById('dashboardSection');
+        const spinner = document.getElementById('spinner');
 
-                // Règle 1 : Opacité Mehdi
-                if (item.courtier === "Mehdi") {
-                    score += 40;
-                    badges.push({ text: "Critique (0% CRM)", class: "bg-red-500/20 text-red-400 border border-red-500/50" });
-                }
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }, false);
+        });
 
-                // Règle 2 : Cycle de vie / Zone de Churn (Proche 67 mois, ex: >60)
-                if (item.mois >= 60 && item.mois <= 72) {
-                    score += 25;
-                    badges.push({ text: "Zone Churn (~67 mois)", class: "bg-orange-500/20 text-orange-400 border border-orange-500/50" });
-                }
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
 
-                // Règle 3 : Hausse de prime
-                if (item.prime >= 400) {
-                    score += 15;
-                    badges.push({ text: "Alerte Hausse Prime", class: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/50" });
-                }
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
 
-                if(score > 100) score = 100;
+        dropZone.addEventListener('drop', e => handleFiles(e.dataTransfer.files), false);
+        fileInput.addEventListener('change', e => handleFiles(e.target.files));
 
-                return { ...item, score, badges };
-            }).sort((a, b) => b.score - a.score); // Tri par urgence
+        function handleFiles(files) {
+            if (!files.length) return;
+            
+            dropZone.style.display = 'none';
+            spinner.style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = e => processExcel(e.target.result);
+            reader.onerror = () => { alert("Erreur de lecture du fichier."); resetUpload(); };
+            reader.readAsArrayBuffer(files[0]);
         }
 
-        // --- GÉNÉRATION DU TABLEAU ---
-        function renderTable() {
-            const tbody = document.getElementById('retentionTableBody');
-            const enriched = enrichData(dataset);
-            
-            tbody.innerHTML = enriched.map(item => {
-                const courtierColor = item.courtier === 'Mehdi' ? 'text-red-400 font-bold' : 'text-blue-400';
+        function resetUpload() {
+            dropZone.style.display = 'block';
+            spinner.style.display = 'none';
+        }
+
+        // --- PARSING EXCEL ---
+        function processExcel(dataBuffer) {
+            try {
+                const workbook = XLSX.read(new Uint8Array(dataBuffer), { type: 'array' });
                 
+                // Recherche flexible des onglets (Tolérance aux emojis et casses)
+                const sheetNames = workbook.SheetNames.map(n => n.toLowerCase());
+                
+                const contratsSheetName = workbook.SheetNames.find(n => n.toLowerCase().includes('contrat')) || workbook.SheetNames[0];
+                const resiliationsSheetName = workbook.SheetNames.find(n => n.toLowerCase().includes('résiliation') || n.toLowerCase().includes('resiliation'));
+                
+                const contratsData = XLSX.utils.sheet_to_json(workbook.Sheets[contratsSheetName], { defval: "" });
+                
+                let churnVolume = 0;
+                if (resiliationsSheetName) {
+                    const resiliationsData = XLSX.utils.sheet_to_json(workbook.Sheets[resiliationsSheetName], { defval: "" });
+                    churnVolume = resiliationsData.length;
+                }
+
+                analyzeData(contratsData, churnVolume);
+                
+                // Afficher le Dashboard
+                uploadSection.classList.add('hidden');
+                dashboardSection.classList.remove('hidden');
+                dashboardSection.classList.add('flex');
+
+            } catch (err) {
+                console.error(err);
+                alert("Erreur lors de l'analyse du fichier. Vérifiez le format.");
+                resetUpload();
+            }
+        }
+
+        // --- ANALYSE & SCORING ---
+        function analyzeData(data, churnCount) {
+            let totalCA = 0;
+            let mehdiCount = 0;
+            
+            allContracts = [];
+
+            // Helper pour trouver les colonnes de manière flexible
+            const getVal = (row, keywords, isNumber = false) => {
+                const key = Object.keys(row).find(k => {
+                    const norm = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    return keywords.some(kw => norm.includes(kw));
+                });
+                if (!key) return isNumber ? 0 : '';
+                let val = String(row[key]).trim();
+                if (isNumber) {
+                    val = parseFloat(val.replace(',', '.').replace(/[^0-9.-]+/g,"")) || 0;
+                }
+                return val;
+            };
+
+            data.forEach((row, index) => {
+                const id = getVal(row, ['id', 'ref', 'numero']) || `CTR-${index+1}`;
+                const courtier = getVal(row, ['courtier', 'broker']) || 'Inconnu';
+                const prime = getVal(row, ['prime', 'prix'], true);
+                const commission = getVal(row, ['commission', 'recurrente'], true);
+                const mois = getVal(row, ['duree', 'anciennete', 'mois'], true);
+
+                let score = 10;
+                
+                // Règle 1 : Mehdi (+40)
+                if (courtier.toLowerCase().includes('mehdi')) {
+                    score += 40;
+                    mehdiCount++;
+                }
+
+                // Règle 2 : Zone Churn 60-72 mois (+25)
+                if (mois >= 60 && mois <= 72) {
+                    score += 25;
+                }
+
+                // Règle 3 : Prime > 400 (+15)
+                if (prime > 400) {
+                    score += 15;
+                }
+                
+                if (score > 100) score = 100;
+
+                totalCA += commission;
+
+                allContracts.push({ id, courtier, prime, commission, mois, score });
+            });
+
+            // Tri global par risque décroissant
+            allContracts.sort((a, b) => b.score - a.score);
+
+            // Update KPIs
+            document.getElementById('kpi-actifs').innerText = allContracts.length.toLocaleString();
+            document.getElementById('kpi-ca').innerText = totalCA.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+            
+            const opacityPercent = allContracts.length > 0 ? Math.round((mehdiCount / allContracts.length) * 100) : 0;
+            document.getElementById('kpi-opacite').innerText = opacityPercent + '%';
+            
+            document.getElementById('kpi-churn').innerText = churnCount.toLocaleString();
+
+            renderTable();
+        }
+
+        // --- GESTION DU FILTRE & RENDU TABLEAU ---
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            
+            const btnAll = document.getElementById('filterAllBtn');
+            const btnRisk = document.getElementById('filterRiskBtn');
+
+            if (filterType === 'all') {
+                btnAll.className = "px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 text-white shadow transition";
+                btnRisk.className = "px-4 py-2 text-sm font-semibold rounded-md text-gray-400 hover:text-white transition";
+            } else {
+                btnRisk.className = "px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 text-white shadow transition";
+                btnAll.className = "px-4 py-2 text-sm font-semibold rounded-md text-gray-400 hover:text-white transition";
+            }
+            
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('dataTableBody');
+            const noData = document.getElementById('noDataMsg');
+            
+            // Filtrage
+            let dataToDisplay = allContracts;
+            if (currentFilter === 'risk') {
+                // Périmètre à risque : Mehdi OU échéance proche (ici score > 35 captant ces cas)
+                dataToDisplay = allContracts.filter(c => c.score >= 35);
+            }
+
+            // On limite à 100 lignes max pour les performances de la démo
+            dataToDisplay = dataToDisplay.slice(0, 100);
+
+            if (dataToDisplay.length === 0) {
+                tbody.innerHTML = '';
+                noData.classList.remove('hidden');
+                return;
+            }
+            
+            noData.classList.add('hidden');
+
+            tbody.innerHTML = dataToDisplay.map(item => {
+                // Couleurs basées sur le score
+                let badgeClass = 'bg-green-500/20 text-green-400 border-green-500/50';
+                let rowBg = 'hover:bg-gray-800';
+                
+                if (item.score > 65) {
+                    badgeClass = 'bg-red-500/20 text-red-400 border-red-500/50';
+                    rowBg = 'bg-red-900/10 hover:bg-red-900/20';
+                } else if (item.score >= 40) {
+                    badgeClass = 'bg-orange-500/20 text-orange-400 border-orange-500/50';
+                    rowBg = 'bg-orange-900/10 hover:bg-orange-900/20';
+                }
+
                 return `
-                <tr class="border-b border-gray-700/50 hover:bg-gray-800 transition-colors group">
-                    <td class="p-3 font-mono text-gray-300 text-xs">${item.id}</td>
-                    <td class="p-3">
-                        <span class="${courtierColor}">${item.courtier}</span><br>
-                        <span class="text-gray-400 text-xs">${item.produit}</span>
-                    </td>
-                    <td class="p-3">
-                        <span class="text-gray-200">${item.mois} mois</span><br>
-                        <span class="text-gray-500 text-xs">Prime: ${item.prime}€ | Rec: ${item.commission}</span>
-                    </td>
-                    <td class="p-3">
-                        <div class="flex flex-wrap gap-1 mb-2">
-                            ${item.badges.map(b => `<span class="text-[10px] px-2 py-0.5 rounded shadow-sm ${b.class}">${b.text}</span>`).join('')}
-                        </div>
-                        <div class="flex items-center w-full max-w-[200px]">
-                            <div class="w-full bg-gray-700 rounded-full h-1.5 mr-3 shadow-inner">
-                                <div class="bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 h-1.5 rounded-full" style="width: ${item.score}%"></div>
-                            </div>
-                            <span class="text-xs font-bold w-8 ${item.score >= 70 ? 'text-red-400' : 'text-gray-300'}">${item.score}%</span>
-                        </div>
-                    </td>
-                    <td class="p-3 text-right">
-                        <button class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold py-2 px-3 rounded shadow-lg transition-transform transform active:scale-95 group-hover:shadow-blue-500/20" onclick="alert('Action de rétention planifiée ! Une tâche a été ajoutée pour appeler le client du contrat ${item.id} à J-30.')">
-                            Déclencher Alerte (J-30)
-                        </button>
+                <tr class="transition-colors ${rowBg}">
+                    <td class="p-4 font-mono text-gray-300">${item.id}</td>
+                    <td class="p-4 font-semibold ${item.courtier.toLowerCase().includes('mehdi') ? 'text-red-400' : 'text-blue-400'}">${item.courtier}</td>
+                    <td class="p-4 text-right text-gray-300">${item.prime.toLocaleString('fr-FR')} €</td>
+                    <td class="p-4 text-right font-semibold text-green-400">${item.commission.toLocaleString('fr-FR')} €</td>
+                    <td class="p-4 text-center text-gray-300">${item.mois}</td>
+                    <td class="p-4 text-center">
+                        <span class="inline-block px-3 py-1 rounded-full border text-xs font-bold ${badgeClass}">
+                            ${item.score} pts
+                        </span>
                     </td>
                 </tr>
             `}).join('');
         }
-
-        // --- GRAPHIQUE MANAGER (CHART.JS) ---
-        let chartInstance = null;
-        
-        function initChart() {
-            const ctx = document.getElementById('recoveryChart').getContext('2d');
-            Chart.defaults.color = '#94a3b8';
-            Chart.defaults.font.family = "'Inter', sans-serif";
-
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
-                    datasets: [
-                        {
-                            label: 'Portefeuille CRM (Romain/Sophie)',
-                            data: [350, 360, 380, 410, 430, 450],
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            fill: true,
-                            tension: 0.4,
-                            borderWidth: 2
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
-                    },
-                    scales: {
-                        y: { 
-                            grid: { color: 'rgba(255,255,255,0.05)' },
-                            beginAtZero: true,
-                            suggestedMax: 600
-                        },
-                        x: { grid: { display: false } }
-                    }
-                }
-            });
-        }
-
-        function toggleManagerMode() {
-            const isChecked = document.getElementById('managerSwitch').checked;
-            const switchBg = document.getElementById('switchBg');
-            const switchDot = document.getElementById('switchDot');
-            const label = document.getElementById('translucentLabel');
-
-            if (isChecked) {
-                switchBg.classList.replace('bg-gray-600', 'bg-purple-600');
-                switchDot.classList.add('translate-x-6');
-                label.classList.remove('hidden');
-
-                // Ajout visuel du portefeuille Mehdi intégré au CRM
-                chartInstance.data.datasets.push({
-                    label: 'Contrats Mehdi réintégrés',
-                    data: [0, 15, 60, 150, 280, 504], // Objectif des 504 contrats
-                    borderColor: '#a855f7',
-                    backgroundColor: 'rgba(168, 85, 247, 0.2)',
-                    borderDash: [5, 5],
-                    fill: true,
-                    tension: 0.4,
-                    borderWidth: 2
-                });
-                chartInstance.options.scales.y.suggestedMax = 1000;
-                chartInstance.update();
-            } else {
-                switchBg.classList.replace('bg-purple-600', 'bg-gray-600');
-                switchDot.classList.remove('translate-x-6');
-                label.classList.add('hidden');
-
-                chartInstance.data.datasets.pop();
-                chartInstance.options.scales.y.suggestedMax = 600;
-                chartInstance.update();
-            }
-        }
-
-        // Initialisation
-        document.addEventListener('DOMContentLoaded', () => {
-            renderTable();
-            initChart();
-        });
 
     </script>
 </body>
