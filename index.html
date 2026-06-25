@@ -239,11 +239,11 @@
                 const contratsSheetName = workbook.SheetNames.find(n => n.toLowerCase().includes('contrat')) || workbook.SheetNames[0];
                 const resiliationsSheetName = workbook.SheetNames.find(n => n.toLowerCase().includes('résiliation') || n.toLowerCase().includes('resiliation'));
                 
-                const contratsData = XLSX.utils.sheet_to_json(workbook.Sheets[contratsSheetName], { defval: "" });
+                const contratsData = XLSX.utils.sheet_to_json(workbook.Sheets[contratsSheetName], { range: 2, defval: "" });
                 
                 let churnVolume = 0;
                 if (resiliationsSheetName) {
-                    const resiliationsData = XLSX.utils.sheet_to_json(workbook.Sheets[resiliationsSheetName], { defval: "" });
+                    const resiliationsData = XLSX.utils.sheet_to_json(workbook.Sheets[resiliationsSheetName], { range: 2, defval: "" });
                     churnVolume = resiliationsData.length;
                 }
 
