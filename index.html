@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Optivie — Portefeuille & Rétention (Dynamique)</title>
-    <!-- Tailwind CSS (via CDN) -->
+    <title>Optivie — Portefeuille & Rétention (Dynamique & Kanban)</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS pour le parsing Excel côté client -->
+    <!-- SheetJS -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     
     <script>
@@ -57,7 +57,7 @@
 </head>
 <body class="bg-gray-900 text-gray-100 font-sans min-h-screen p-4 md:p-8 flex flex-col">
 
-    <!-- HEADER (Toujours visible) -->
+    <!-- HEADER -->
     <header class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 glass-panel rounded-2xl p-6 shadow-xl">
         <div>
             <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Optivie</h1>
@@ -72,7 +72,7 @@
         </div>
     </header>
 
-    <!-- ZONE D'UPLOAD INITIALE -->
+    <!-- ZONE D'UPLOAD -->
     <div id="uploadSection" class="flex-1 flex flex-col items-center justify-center">
         <div id="dropZone" class="upload-zone w-full max-w-2xl rounded-2xl p-12 text-center cursor-pointer shadow-2xl glass-panel">
             <div class="text-6xl mb-4 text-blue-500">📥</div>
@@ -86,10 +86,10 @@
         <div id="spinner" class="spinner mt-8"></div>
     </div>
 
-    <!-- DASHBOARD PRINCIPAL (Masqué au démarrage) -->
+    <!-- DASHBOARD PRINCIPAL -->
     <div id="dashboardSection" class="hidden flex-col gap-8 w-full max-w-7xl mx-auto">
         
-        <!-- 2. KPI CLÉS -->
+        <!-- 1. KPI CLÉS -->
         <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="glass-panel rounded-xl p-6 border-l-4 border-blue-500">
                 <h3 class="text-gray-400 text-sm font-semibold uppercase mb-2">Contrats Actifs</h3>
@@ -111,18 +111,17 @@
             </div>
         </section>
 
-        <!-- 4. INTERFACE FUNNEL & CHANGEMENT -->
+        <!-- 2. INTERFACE FUNNEL & CHANGEMENT -->
         <section class="glass-panel rounded-2xl p-6 shadow-xl">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h2 class="text-xl font-bold text-white flex items-center">
                     <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     Nouveau Funnel de Rétention
                 </h2>
-                
-                <!-- Filtre interactif -->
+                <!-- Filtre de périmètre -->
                 <div class="bg-gray-800 p-1 rounded-lg inline-flex shadow-inner">
-                    <button id="filterAllBtn" onclick="setFilter('all')" class="px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 text-white shadow transition">Tout le portefeuille</button>
-                    <button id="filterRiskBtn" onclick="setFilter('risk')" class="px-4 py-2 text-sm font-semibold rounded-md text-gray-400 hover:text-white transition">Périmètre à risques (Mehdi + Échéances)</button>
+                    <button id="filterAllBtn" onclick="setPerimeterFilter('all')" class="px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 text-white shadow transition">Tout le portefeuille</button>
+                    <button id="filterRiskBtn" onclick="setPerimeterFilter('risk')" class="px-4 py-2 text-sm font-semibold rounded-md text-gray-400 hover:text-white transition">Périmètre à risques (Mehdi + Échéances)</button>
                 </div>
             </div>
             
@@ -149,16 +148,34 @@
             </div>
         </section>
 
-        <!-- 3. TABLEAU DE SCORING DU RISQUE -->
+        <!-- 3. PILOTAGE OPÉRATIONNEL (Tableau & Kanban) -->
         <section class="glass-panel rounded-2xl flex flex-col shadow-xl overflow-hidden mb-10">
-            <div class="p-6 border-b border-gray-700">
+            <div class="p-6 border-b border-gray-700 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <h2 class="text-xl font-bold text-white flex items-center">
                     <svg class="w-6 h-6 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                    Contrats Actifs & Scoring de Risque
+                    Pilotage Opérationnel des Alertes
                 </h2>
+                
+                <!-- Barre d'outils : Filtres Avancés et Vue -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <select id="filterBroker" onchange="updateFilters()" class="bg-gray-800 text-sm text-gray-200 px-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-500">
+                        <option value="all">Tous les courtiers</option>
+                    </select>
+                    <select id="filterRiskLevel" onchange="updateFilters()" class="bg-gray-800 text-sm text-gray-200 px-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-500">
+                        <option value="all">Tous les risques</option>
+                        <option value="high">Critique (>65 pts)</option>
+                        <option value="medium">Modéré (40-65 pts)</option>
+                        <option value="low">Sain (<40 pts)</option>
+                    </select>
+                    <div class="flex bg-gray-800 p-1 rounded-lg shadow-inner">
+                        <button id="viewListBtn" onclick="setView('list')" class="px-3 py-1 text-sm font-semibold rounded bg-blue-600 text-white shadow transition">📋 Liste</button>
+                        <button id="viewKanbanBtn" onclick="setView('kanban')" class="px-3 py-1 text-sm font-semibold rounded text-gray-400 hover:text-white transition">🗂️ Kanban</button>
+                    </div>
+                </div>
             </div>
             
-            <div class="overflow-x-auto">
+            <!-- VUE LISTE -->
+            <div id="listView" class="overflow-x-auto block">
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-gray-800/80">
                         <tr class="text-gray-400 text-xs uppercase tracking-wider">
@@ -175,21 +192,56 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- VUE KANBAN -->
+            <div id="kanbanView" class="hidden p-6 bg-gray-900/50">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Colonne 1 -->
+                    <div class="flex flex-col bg-gray-800/50 rounded-xl border border-gray-700/50">
+                        <div class="p-3 border-b border-gray-700/50 font-bold text-red-400 flex justify-between items-center bg-gray-800/80 rounded-t-xl">
+                            <span>🔴 À traiter (Urgent J-30)</span>
+                            <span id="kb-count-todo" class="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">0</span>
+                        </div>
+                        <div id="kb-col-todo" class="p-3 flex flex-col gap-3 min-h-[300px]"></div>
+                    </div>
+                    <!-- Colonne 2 -->
+                    <div class="flex flex-col bg-gray-800/50 rounded-xl border border-gray-700/50">
+                        <div class="p-3 border-b border-gray-700/50 font-bold text-orange-400 flex justify-between items-center bg-gray-800/80 rounded-t-xl">
+                            <span>🟠 En cours (Appel programmé)</span>
+                            <span class="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">0</span>
+                        </div>
+                        <div id="kb-col-inprogress" class="p-3 flex flex-col gap-3 min-h-[300px] text-center justify-center text-gray-500 text-sm">
+                            <p>Déplacez les cartes ici</p>
+                        </div>
+                    </div>
+                    <!-- Colonne 3 -->
+                    <div class="flex flex-col bg-gray-800/50 rounded-xl border border-gray-700/50">
+                        <div class="p-3 border-b border-gray-700/50 font-bold text-green-400 flex justify-between items-center bg-gray-800/80 rounded-t-xl">
+                            <span>🟢 Sécurisé (Sauvé)</span>
+                            <span class="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">0</span>
+                        </div>
+                        <div id="kb-col-done" class="p-3 flex flex-col gap-3 min-h-[300px] text-center justify-center text-gray-500 text-sm">
+                            <p>Contrats renouvelés</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             <div id="noDataMsg" class="hidden p-8 text-center text-gray-500">
-                Aucun contrat ne correspond au filtre actuel.
+                Aucun contrat ne correspond aux filtres actuels.
             </div>
         </section>
 
     </div>
 
-    <!-- LOGIQUE JAVASCRIPT (Parsing & UI) -->
+    <!-- LOGIQUE JAVASCRIPT -->
     <script>
-        // Variables globales
+        // --- VARIABLES GLOBALES ---
         let allContracts = [];
-        let currentFilter = 'all'; // 'all' or 'risk'
+        let currentPerimeterFilter = 'all'; // 'all' or 'risk'
+        let activeView = 'list'; // 'list' or 'kanban'
 
-        // --- GESTION DU DRAG & DROP ---
+        // --- GESTION DU DRAG & DROP FICHIER ---
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const uploadSection = document.getElementById('uploadSection');
@@ -213,7 +265,6 @@
 
         function handleFiles(files) {
             if (!files.length) return;
-            
             dropZone.style.display = 'none';
             spinner.style.display = 'block';
 
@@ -233,12 +284,11 @@
             try {
                 const workbook = XLSX.read(new Uint8Array(dataBuffer), { type: 'array' });
                 
-                // Recherche flexible des onglets (Tolérance aux emojis et casses)
-                const sheetNames = workbook.SheetNames.map(n => n.toLowerCase());
-                
+                // Recherche flexible des onglets
                 const contratsSheetName = workbook.SheetNames.find(n => n.toLowerCase().includes('contrat')) || workbook.SheetNames[0];
                 const resiliationsSheetName = workbook.SheetNames.find(n => n.toLowerCase().includes('résiliation') || n.toLowerCase().includes('resiliation'));
                 
+                // FIX: range 2 pour ignorer le titre et la ligne vide
                 const contratsData = XLSX.utils.sheet_to_json(workbook.Sheets[contratsSheetName], { range: 2, defval: "" });
                 
                 let churnVolume = 0;
@@ -249,7 +299,6 @@
 
                 analyzeData(contratsData, churnVolume);
                 
-                // Afficher le Dashboard
                 uploadSection.classList.add('hidden');
                 dashboardSection.classList.remove('hidden');
                 dashboardSection.classList.add('flex');
@@ -265,10 +314,8 @@
         function analyzeData(data, churnCount) {
             let totalCA = 0;
             let mehdiCount = 0;
-            
             allContracts = [];
 
-            // Helper pour trouver les colonnes de manière flexible
             const getVal = (row, keywords, isNumber = false) => {
                 const key = Object.keys(row).find(k => {
                     const norm = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -291,48 +338,44 @@
 
                 let score = 10;
                 
-                // Règle 1 : Mehdi (+40)
-                if (courtier.toLowerCase().includes('mehdi')) {
-                    score += 40;
-                    mehdiCount++;
-                }
-
-                // Règle 2 : Zone Churn 60-72 mois (+25)
-                if (mois >= 60 && mois <= 72) {
-                    score += 25;
-                }
-
-                // Règle 3 : Prime > 400 (+15)
-                if (prime > 400) {
-                    score += 15;
-                }
-                
+                if (courtier.toLowerCase().includes('mehdi')) { score += 40; mehdiCount++; }
+                if (mois >= 60 && mois <= 72) { score += 25; }
+                if (prime > 400) { score += 15; }
                 if (score > 100) score = 100;
 
                 totalCA += commission;
-
                 allContracts.push({ id, courtier, prime, commission, mois, score });
             });
 
-            // Tri global par risque décroissant
             allContracts.sort((a, b) => b.score - a.score);
 
-            // Update KPIs
+            // Mise à jour des KPIs
             document.getElementById('kpi-actifs').innerText = allContracts.length.toLocaleString();
             document.getElementById('kpi-ca').innerText = totalCA.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
             
             const opacityPercent = allContracts.length > 0 ? Math.round((mehdiCount / allContracts.length) * 100) : 0;
             document.getElementById('kpi-opacite').innerText = opacityPercent + '%';
-            
             document.getElementById('kpi-churn').innerText = churnCount.toLocaleString();
 
-            renderTable();
+            populateBrokerFilter();
+            renderData();
         }
 
-        // --- GESTION DU FILTRE & RENDU TABLEAU ---
-        function setFilter(filterType) {
-            currentFilter = filterType;
-            
+        // --- GESTION DES FILTRES ET VUES ---
+        function populateBrokerFilter() {
+            const select = document.getElementById('filterBroker');
+            select.innerHTML = '<option value="all">Tous les courtiers</option>';
+            const brokers = [...new Set(allContracts.map(c => c.courtier))].sort();
+            brokers.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.innerText = b;
+                select.appendChild(opt);
+            });
+        }
+
+        function setPerimeterFilter(filterType) {
+            currentPerimeterFilter = filterType;
             const btnAll = document.getElementById('filterAllBtn');
             const btnRisk = document.getElementById('filterRiskBtn');
 
@@ -343,34 +386,82 @@
                 btnRisk.className = "px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 text-white shadow transition";
                 btnAll.className = "px-4 py-2 text-sm font-semibold rounded-md text-gray-400 hover:text-white transition";
             }
-            
-            renderTable();
+            updateFilters();
         }
 
-        function renderTable() {
-            const tbody = document.getElementById('dataTableBody');
-            const noData = document.getElementById('noDataMsg');
+        function setView(view) {
+            activeView = view;
+            const btnList = document.getElementById('viewListBtn');
+            const btnKanban = document.getElementById('viewKanbanBtn');
+            const listView = document.getElementById('listView');
+            const kanbanView = document.getElementById('kanbanView');
+
+            if (view === 'list') {
+                btnList.className = "px-3 py-1 text-sm font-semibold rounded bg-blue-600 text-white shadow transition";
+                btnKanban.className = "px-3 py-1 text-sm font-semibold rounded text-gray-400 hover:text-white transition";
+                listView.classList.remove('hidden');
+                listView.classList.add('block');
+                kanbanView.classList.add('hidden');
+            } else {
+                btnKanban.className = "px-3 py-1 text-sm font-semibold rounded bg-blue-600 text-white shadow transition";
+                btnList.className = "px-3 py-1 text-sm font-semibold rounded text-gray-400 hover:text-white transition";
+                kanbanView.classList.remove('hidden');
+                listView.classList.add('hidden');
+                listView.classList.remove('block');
+            }
+        }
+
+        function updateFilters() {
+            renderData();
+        }
+
+        function getFilteredData() {
+            let data = allContracts;
             
-            // Filtrage
-            let dataToDisplay = allContracts;
-            if (currentFilter === 'risk') {
-                // Périmètre à risque : Mehdi OU échéance proche (ici score > 35 captant ces cas)
-                dataToDisplay = allContracts.filter(c => c.score >= 35);
+            // Filtre Périmètre (Boutons du haut)
+            if (currentPerimeterFilter === 'risk') {
+                data = data.filter(c => c.score >= 35);
             }
 
-            // On limite à 100 lignes max pour les performances de la démo
+            // Filtre Courtier
+            const brokerFilter = document.getElementById('filterBroker').value;
+            if (brokerFilter !== 'all') {
+                data = data.filter(c => c.courtier === brokerFilter);
+            }
+
+            // Filtre Niveau de Risque
+            const riskFilter = document.getElementById('filterRiskLevel').value;
+            if (riskFilter === 'high') data = data.filter(c => c.score > 65);
+            else if (riskFilter === 'medium') data = data.filter(c => c.score >= 40 && c.score <= 65);
+            else if (riskFilter === 'low') data = data.filter(c => c.score < 40);
+
+            return data;
+        }
+
+        // --- RENDU UI (LISTE & KANBAN) ---
+        function renderData() {
+            let dataToDisplay = getFilteredData();
+            
+            // Limite pour les performances du DOM
             dataToDisplay = dataToDisplay.slice(0, 100);
+
+            const noData = document.getElementById('noDataMsg');
+            const tbody = document.getElementById('dataTableBody');
+            const kbTodo = document.getElementById('kb-col-todo');
+            const kbCount = document.getElementById('kb-count-todo');
 
             if (dataToDisplay.length === 0) {
                 tbody.innerHTML = '';
+                kbTodo.innerHTML = '';
+                kbCount.innerText = '0';
                 noData.classList.remove('hidden');
                 return;
             }
             
             noData.classList.add('hidden');
 
+            // 1. RENDU DU TABLEAU
             tbody.innerHTML = dataToDisplay.map(item => {
-                // Couleurs basées sur le score
                 let badgeClass = 'bg-green-500/20 text-green-400 border-green-500/50';
                 let rowBg = 'hover:bg-gray-800';
                 
@@ -395,6 +486,35 @@
                         </span>
                     </td>
                 </tr>
+            `}).join('');
+
+            // 2. RENDU DU KANBAN
+            kbCount.innerText = dataToDisplay.length;
+            kbTodo.innerHTML = dataToDisplay.map(item => {
+                let badgeClass = 'bg-green-500/20 text-green-400 border-green-500/50';
+                let borderClass = 'border-gray-600';
+                
+                if (item.score > 65) {
+                    badgeClass = 'bg-red-500/20 text-red-400 border-red-500/50';
+                    borderClass = 'border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]';
+                } else if (item.score >= 40) {
+                    badgeClass = 'bg-orange-500/20 text-orange-400 border-orange-500/50';
+                    borderClass = 'border-orange-500/50';
+                }
+                
+                return `
+                <div class="bg-gray-800 p-3 rounded-lg border ${borderClass} cursor-grab active:cursor-grabbing hover:-translate-y-1 transition transform shadow-md">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="font-mono text-xs text-gray-400">${item.id}</span>
+                        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold border ${badgeClass}">${item.score} pts</span>
+                    </div>
+                    <div class="font-semibold text-white mb-1">${item.courtier}</div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-2">
+                        <span>${item.mois} mois</span>
+                        <span class="text-green-400 font-bold">${item.commission} €/an</span>
+                    </div>
+                    <button class="w-full mt-2 bg-blue-600/80 hover:bg-blue-500 text-white text-[11px] py-1.5 font-semibold rounded transition" onclick="alert('Relance planifiée pour le contrat ${item.id}')">Appeler J-30</button>
+                </div>
             `}).join('');
         }
 
